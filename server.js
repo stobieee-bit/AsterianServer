@@ -135,6 +135,24 @@ wss.on('connection', (ws) => {
             broadcast({ type: 'stats', id: pData.id, stats: pData.stats }, ws);
         }
 
+        // ── Attack relay (shared combat) ─────────────────────
+        else if (msg.type === 'attack') {
+            broadcast({
+                type: 'attack', id: pData.id, name: pData.name,
+                enemyId: msg.enemyId, damage: Number(msg.damage) || 0,
+                style: msg.style || 'nano',
+                x: Number(msg.x) || 0, z: Number(msg.z) || 0
+            }, ws);
+        }
+
+        // ── Enemy kill relay ──────────────────────────────────
+        else if (msg.type === 'enemyKill') {
+            broadcast({
+                type: 'enemyKill', id: pData.id, name: pData.name,
+                enemyId: msg.enemyId
+            }, ws);
+        }
+
         // ── Heartbeat response ─────────────────────────────
         else if (msg.type === 'pong') {
             pData.lastPing = Date.now();
