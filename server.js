@@ -49,6 +49,13 @@ function sendTo(ws, data) {
     }
 }
 
+function findPlayerWs(targetId) {
+    for (const [ws, pd] of players) {
+        if (pd.id === targetId) return ws;
+    }
+    return null;
+}
+
 wss.on('connection', (ws) => {
     if (players.size >= MAX_PLAYERS) {
         sendTo(ws, { type: 'error', msg: 'Server full' });
@@ -172,6 +179,32 @@ wss.on('connection', (ws) => {
             }, ws);
         }
 
+        // ── Trade relay (targeted, not broadcast) ──────────
+        else if (msg.type === 'tradeRequest') {
+            const tw = findPlayerWs(msg.targetId);
+            if (tw) sendTo(tw, { type: 'tradeRequest', fromId: pData.id, fromName: pData.name });
+        }
+        else if (msg.type === 'tradeAccept') {
+            const tw = findPlayerWs(msg.targetId);
+            if (tw) sendTo(tw, { type: 'tradeAccept', fromId: pData.id, fromName: pData.name });
+        }
+        else if (msg.type === 'tradeDecline') {
+            const tw = findPlayerWs(msg.targetId);
+            if (tw) sendTo(tw, { type: 'tradeDecline', fromId: pData.id });
+        }
+        else if (msg.type === 'tradeUpdate') {
+            const tw = findPlayerWs(msg.targetId);
+            if (tw) sendTo(tw, { type: 'tradeUpdate', fromId: pData.id, items: msg.items || [] });
+        }
+        else if (msg.type === 'tradeConfirm') {
+            const tw = findPlayerWs(msg.targetId);
+            if (tw) sendTo(tw, { type: 'tradeConfirm', fromId: pData.id });
+        }
+        else if (msg.type === 'tradeCancel') {
+            const tw = findPlayerWs(msg.targetId);
+            if (tw) sendTo(tw, { type: 'tradeCancel', fromId: pData.id });
+        }
+
         // ── Heartbeat response ─────────────────────────────
         else if (msg.type === 'pong') {
             pData.lastPing = Date.now();
@@ -180,7 +213,10 @@ wss.on('connection', (ws) => {
 
     ws.on('close', () => {
         if (pData) {
+            // Notify all players (including any trade partner) that this player left
             broadcast({ type: 'leave', id: pData.id });
+            // Also send tradeCancel to anyone who might be trading with this player
+            broadcast({ type: 'tradeCancel', fromId: pData.id });
             console.log(`[-] ${pData.name} left (${players.size - 1}/${MAX_PLAYERS})`);
         }
         players.delete(ws);
