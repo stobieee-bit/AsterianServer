@@ -153,6 +153,16 @@ wss.on('connection', (ws) => {
             }, ws);
         }
 
+        // ── Ground item drop relay ───────────────────────────
+        else if (msg.type === 'groundDrop') {
+            broadcast({
+                type: 'groundDrop', id: pData.id, name: pData.name,
+                x: Number(msg.x) || 0, z: Number(msg.z) || 0,
+                itemId: (msg.itemId || '').slice(0, 64),
+                quantity: Math.min(Number(msg.quantity) || 1, 1000)
+            }, ws);
+        }
+
         // ── Heartbeat response ─────────────────────────────
         else if (msg.type === 'pong') {
             pData.lastPing = Date.now();
