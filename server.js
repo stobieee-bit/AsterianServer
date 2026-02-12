@@ -159,7 +159,16 @@ wss.on('connection', (ws) => {
                 type: 'groundDrop', id: pData.id, name: pData.name,
                 x: Number(msg.x) || 0, z: Number(msg.z) || 0,
                 itemId: (msg.itemId || '').slice(0, 64),
-                quantity: Math.min(Number(msg.quantity) || 1, 1000)
+                quantity: Math.min(Number(msg.quantity) || 1, 1000),
+                mpDropId: (msg.mpDropId || '').slice(0, 32)
+            }, ws);
+        }
+
+        // ── Ground item pickup relay (remove from other clients) ──
+        else if (msg.type === 'groundPickup') {
+            broadcast({
+                type: 'groundPickup', id: pData.id,
+                mpDropId: (msg.mpDropId || '').slice(0, 32)
             }, ws);
         }
 
